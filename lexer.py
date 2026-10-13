@@ -4,13 +4,34 @@ tokens = ("PRINT",
           "INTEGER",
           "LPAREN",
           "RPAREN",
-          "SEMICOLON"
+          "SEMICOLON",
+          "LET",
+          "IDENTIFIER",
+          "ASSIGN",
+          "PLUS",
+          "MINUS",
+          "TIMES",
+          "DIVIDE"
           )
 
-t_PRINT = r'print'
+reserved = {
+  "print": "PRINT",
+  "let": "LET"
+}
+
+t_ASSIGN = r'='
+t_PLUS = r'\+'
+t_MINUS = r'-'
+t_TIMES = r'\*'
+t_DIVIDE = r'/'
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
 t_SEMICOLON = r';'
+
+def t_IDENTIFIER(t):
+  r'[a-zA-Z_][a-zA-Z0-9_]*'
+  t.type = reserved.get(t.value, "IDENTIFIER")
+  return t
 
 def t_INTEGER(t):
   r'\d+'
