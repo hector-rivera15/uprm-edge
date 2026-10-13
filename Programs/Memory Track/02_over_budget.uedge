@@ -1,0 +1,12 @@
+// Track A (Memory-Aware): a budget that is exceeded
+// Sample cost model assumed here: int = 4 bytes.
+// Estimated usage: 2000*4 = 8000 bytes, which is more than 4kb.
+// Expected result (Subproject 2): a memory-budget violation is reported
+// (with the function name and ideally a line number); "unreachable" is never printed.
+@memory(4kb)
+func tooBig() {
+    let buffer = array(int, 2000);
+    print("unreachable");
+}
+
+tooBig();

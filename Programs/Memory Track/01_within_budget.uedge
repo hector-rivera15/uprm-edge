@@ -1,0 +1,14 @@
+// Track A (Memory-Aware): annotation parsing + a budget that is respected
+// Sample cost model assumed here: int = 4 bytes, float = 4 bytes.
+// Your team defines and documents its own model; keep your test files consistent with it.
+// Estimated usage: 1000*4 + 200*4 = 4800 bytes, which is within 40kb.
+// Expected result (Subproject 2): accepted, prints:
+//   done
+@memory(40kb)
+func readSensorBuffer() {
+    let buffer = array(int, 1000);
+    let temp = array(float, 200);
+    print("done");
+}
+
+readSensorBuffer();
