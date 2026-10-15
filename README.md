@@ -24,6 +24,7 @@ python parser.py prueba.uedge
 
 - `lexer.py` - PLY lexer definitions.
 - `parser.py` - PLY parser and command-line entry point.
+- `ast_nodes.py` - immutable AST node definitions produced by the parser.
 - `prueba.uedge` - small parser smoke-test program.
 - `Programs/Valid Core Programs/` - public valid common-core examples.
 - `Programs/Invalid Core Programs/` - public invalid-input examples.
