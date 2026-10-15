@@ -36,7 +36,7 @@ def p_statement_print(p):
     'statement : PRINT LPAREN expression RPAREN SEMICOLON'
     p[0] = ("print", p[3])
 
-def p_expresion_binop(p):
+def p_expression_binop(p):
     '''expression : expression PLUS expression
                   | expression MINUS expression
                   | expression TIMES expression
@@ -61,6 +61,78 @@ def p_error(p):
         f"Error: unexpected token {p.value!r} at line {p.lineno}"
     )
 
+/////////////////////////////new common core Parser/////////////////////////////
+//1//
+//basics expressions//
+def p_expression_float(p):
+    'expression : FLOAT'
+    p[0] = p[1]
+
+def p_expression_string(p):
+    'expression : STRING'
+    p[0] = p[1]
+
+def p_expression_boolean(p):
+    'expression : BOOLEAN'
+    p[0] = p[1]
+
+//more info//
+def p_expression_comparison(p):
+    'expression : expression LT expression
+                  | expression GT expression
+                  | expression GE expression
+                  | expression LE expression
+                  | expression EQ expression
+                  | expression NE expression'
+    p[0] = (p[2], p[1], p[3])
+
+def p_expression_modulo(p):
+    'expression : expression MODULO expression'
+    p[0] = (p[2], p[1], p[3])
+
+//functions//
+def p_arguments_empty(p):
+    'arguments : empty'
+    p[0] = []
+
+def p_arguments_single(p):
+    'arguments : expression'
+    p[0] = [p[1]]
+
+def p_arguments_multiple(p):
+    'arguments : arguments COMMA expression'
+    p[0] = p[1] + [p[3]]
+
+def p_expression_function(p):
+    'expression : IDENTIFIER LPAREN arguments RPAREN'
+    p[0] = ("call", p[1], p[3])
+
+//2//
+//statements//
+def p_statement_return(p):
+    'statement : RETURN expression SEMICOLON'
+    p[0] = ("return", p[2])
+
+def p_statement_if_else(p):
+    '''statement : IF LPAREN expression RPAREN LBRACE statements RBRACE
+                 ELSE LBRACE statements RBRACE'''
+    p[0] = ("if_else", p[3], p[6], p[10])
+
+def p_statement_while_loop(p):
+    'statement : WHILE LPAREN expression RPAREN LBRACE statements RBRACE'
+    p[0] = ("while", p[3], p[6])
+
+//3//
+//functions and for loops//
+def p_statement_function(p):
+    'statement : FUNC IDENTIFIER LPAREN parameters RPAREN LBRACE statements RBRACE'
+    p[0] = ("function", p[2], p[4], p[7])
+
+def p_expression_function_call(p):
+    'expression : IDENTIFIER LPAREN arguments RPAREN'
+    p[0] = ("call", p[1], p[3])
+
+//for loops//
 
 parser = yacc.yacc()
 
