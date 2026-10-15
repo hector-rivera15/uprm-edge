@@ -61,9 +61,9 @@ def p_error(p):
         f"Error: unexpected token {p.value!r} at line {p.lineno}"
     )
 
-/////////////////////////////new common core Parser/////////////////////////////
-//1//
-//basics expressions//
+#/////////////////////////////new common core Parser/////////////////////////////
+#//1//
+#//basics expressions//
 def p_expression_float(p):
     'expression : FLOAT'
     p[0] = p[1]
@@ -76,21 +76,26 @@ def p_expression_boolean(p):
     'expression : BOOLEAN'
     p[0] = p[1]
 
-//more info//
+#more info//
 def p_expression_comparison(p):
-    'expression : expression LT expression
+    '''expression : expression LT expression
                   | expression GT expression
                   | expression GE expression
                   | expression LE expression
                   | expression EQ expression
-                  | expression NE expression'
+                  | expression NE expression'''
     p[0] = (p[2], p[1], p[3])
 
 def p_expression_modulo(p):
     'expression : expression MODULO expression'
     p[0] = (p[2], p[1], p[3])
 
-//functions//
+#//functions//
+#//empty possible//
+def p_empty(p):
+    'empty :'
+    pass
+
 def p_arguments_empty(p):
     'arguments : empty'
     p[0] = []
@@ -103,37 +108,70 @@ def p_arguments_multiple(p):
     'arguments : arguments COMMA expression'
     p[0] = p[1] + [p[3]]
 
+def p_parameters(p):
+    '''parameters : IDENTIFIER
+                  | parameters COMMA IDENTIFIER'''
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = p[1] + [p[3]]
+
+
+def p_parameters_empty(p):
+    'parameters : empty'
+    p[0] = []
+
 def p_expression_function(p):
     'expression : IDENTIFIER LPAREN arguments RPAREN'
     p[0] = ("call", p[1], p[3])
 
-//2//
-//statements//
+#//2//
+#//statements//
 def p_statement_return(p):
     'statement : RETURN expression SEMICOLON'
     p[0] = ("return", p[2])
 
+def p_statement_if(p):
+    'statement : IF LPAREN expression RPAREN LBRACE statements RBRACE'
+    p[0] = ("if", p[3], p[6])
+
+
 def p_statement_if_else(p):
-    '''statement : IF LPAREN expression RPAREN LBRACE statements RBRACE
-                 ELSE LBRACE statements RBRACE'''
+    'statement : IF LPAREN expression RPAREN LBRACE statements RBRACE ELSE LBRACE statements RBRACE'
     p[0] = ("if_else", p[3], p[6], p[10])
 
 def p_statement_while_loop(p):
     'statement : WHILE LPAREN expression RPAREN LBRACE statements RBRACE'
     p[0] = ("while", p[3], p[6])
 
-//3//
-//functions and for loops//
+#//3//
+#//functions and for loops//
 def p_statement_function(p):
     'statement : FUNC IDENTIFIER LPAREN parameters RPAREN LBRACE statements RBRACE'
     p[0] = ("function", p[2], p[4], p[7])
 
-def p_expression_function_call(p):
-    'expression : IDENTIFIER LPAREN arguments RPAREN'
-    p[0] = ("call", p[1], p[3])
 
-//for loops//
+#//for loops//
+#//for loop initialization//
+def p_for_init(p):
+    '''for_init : LET IDENTIFIER ASSIGN expression
+                | IDENTIFIER ASSIGN expression'''
+    if len(p) == 5:
+        p[0] = ("let", p[2], p[4])
+    else:
+        p[0] = ("assign", p[1], p[3])
+        
+#//for loop condition//
+def p_for_update(p):
+    'for_update : IDENTIFIER ASSIGN expression'
+    p[0] = ("assign", p[1], p[3])
 
+def p_statement_for_loop(p):
+    'statement : FOR LPAREN for_init SEMICOLON expression SEMICOLON for_update RPAREN LBRACE statements RBRACE'
+    p[0] = ("for", p[3], p[5], p[7], p[10])
+
+
+#////////////////////////
 parser = yacc.yacc()
 
 if __name__ == "__main__":
