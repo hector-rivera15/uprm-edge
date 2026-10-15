@@ -510,6 +510,17 @@ def p_annotation_memory(p):
     p[0] = MemoryAnnotation(amount=p[4], unit=p[5], line=p.lineno(1))
 
 
+def p_annotation_missing_arguments(p):
+    "annotation : AT IDENTIFIER"
+    if p[2] == "memory":
+        raise ValueError(
+            f"Error: malformed @memory annotation at line {p.lineno(1)}"
+        )
+    raise ValueError(
+        f"Error: unsupported annotation @{p[2]!s} at line {p.lineno(1)}"
+    )
+
+
 def p_parameters_opt_empty(p):
     "parameters_opt : empty"
     p[0] = []

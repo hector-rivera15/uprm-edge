@@ -166,6 +166,16 @@ class PublicProgramValidationTests(unittest.TestCase):
                 ):
                     parser.parse(source, lexer=lexer)
 
+    def test_bare_memory_annotation_reports_the_annotation_line(self):
+        source = "func before() {}\n@memory\nfunc after() {}\n"
+
+        lexer.lineno = 1
+        with self.assertRaisesRegex(
+            ValueError,
+            r"^Error: malformed @memory annotation at line 2$",
+        ):
+            parser.parse(source, lexer=lexer)
+
 
 if __name__ == "__main__":
     unittest.main()
