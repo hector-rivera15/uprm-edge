@@ -7,15 +7,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SUBMISSION = ROOT / "moodle_parser.py"
+SUBMISSION = ROOT / "ParserLexer.py"
 SAMPLE = ROOT / "prueba.uedge"
 
 
-class MoodleParserSubmissionTests(unittest.TestCase):
+class ParserLexerSubmissionTests(unittest.TestCase):
     def test_submission_file_is_self_contained_when_copied(self):
         with tempfile.TemporaryDirectory() as directory:
             temporary_directory = Path(directory)
-            copied_parser = temporary_directory / "parser.py"
+            copied_parser = temporary_directory / "ParserLexer.py"
             copied_program = temporary_directory / "program.uedge"
             shutil.copyfile(SUBMISSION, copied_parser)
             shutil.copyfile(SAMPLE, copied_program)

@@ -1,8 +1,7 @@
 import unittest
 from pathlib import Path
 
-from lexer import lexer
-from parser import parser
+from ParserLexer import lexer, parser
 
 
 ROOT = Path(__file__).resolve().parents[1]

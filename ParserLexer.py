@@ -1,33 +1,326 @@
-"""PLY parser for UPRM-Edge that produces :mod:`ast_nodes` values."""
+"""Self-contained UPRM-Edge parser for the Moodle submission field.
 
+This file intentionally contains the lexer, AST definitions, parser grammar,
+and command-line entry point in one place. It can be copied into Moodle and
+run as a single submitted source file.
+"""
+
+import ast as python_ast
 import sys
+from dataclasses import dataclass
 from typing import Iterable, Optional, Tuple
 
+import ply.lex as lex
 import ply.yacc as yacc
 
-from ast_nodes import (
-    Assignment,
-    Binary,
-    Block,
-    BooleanLiteral,
-    Call,
-    ExpressionStatement,
-    FloatLiteral,
-    For,
-    FunctionDeclaration,
-    Identifier,
-    If,
-    IntegerLiteral,
-    LetDeclaration,
-    MemoryAnnotation,
-    Print,
-    Program,
-    Return,
-    StringLiteral,
-    Unary,
-    While,
+
+# ---------------------------------------------------------------------------
+# AST nodes
+
+
+class Node:
+    """Marker base class for every AST node."""
+
+
+class Statement(Node):
+    """Marker base class for statement nodes."""
+
+
+class Expression(Node):
+    """Marker base class for expression nodes."""
+
+
+class Annotation(Node):
+    """Marker base class for declaration annotations."""
+
+
+@dataclass(frozen=True)
+class Program(Node):
+    statements: Tuple[Statement, ...]
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Block(Statement):
+    statements: Tuple[Statement, ...]
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class LetDeclaration(Statement):
+    name: str
+    initializer: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Assignment(Statement):
+    name: str
+    value: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Print(Statement):
+    expression: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class ExpressionStatement(Statement):
+    expression: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Return(Statement):
+    value: Optional[Expression] = None
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class If(Statement):
+    condition: Expression
+    then_branch: Block
+    else_branch: Optional[Block] = None
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class While(Statement):
+    condition: Expression
+    body: Block
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class For(Statement):
+    initializer: Optional[Statement]
+    condition: Optional[Expression]
+    update: Optional[Statement]
+    body: Block
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class FunctionDeclaration(Statement):
+    name: str
+    parameters: Tuple[str, ...]
+    body: Block
+    annotations: Tuple[Annotation, ...] = ()
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class MemoryAnnotation(Annotation):
+    amount: int
+    unit: str
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Identifier(Expression):
+    name: str
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class IntegerLiteral(Expression):
+    value: int
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class FloatLiteral(Expression):
+    value: float
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class BooleanLiteral(Expression):
+    value: bool
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class StringLiteral(Expression):
+    value: str
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Unary(Expression):
+    operator: str
+    operand: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Binary(Expression):
+    operator: str
+    left: Expression
+    right: Expression
+    line: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class Call(Expression):
+    callee: Expression
+    arguments: Tuple[Expression, ...]
+    line: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Lexer
+
+
+tokens = (
+    "LET",
+    "FUNC",
+    "IF",
+    "ELSE",
+    "WHILE",
+    "FOR",
+    "RETURN",
+    "PRINT",
+    "IDENTIFIER",
+    "INTEGER",
+    "FLOAT",
+    "BOOLEAN",
+    "STRING",
+    "ASSIGN",
+    "PLUS",
+    "MINUS",
+    "TIMES",
+    "DIVIDE",
+    "MODULO",
+    "EQ",
+    "NE",
+    "LT",
+    "GT",
+    "LE",
+    "GE",
+    "LPAREN",
+    "RPAREN",
+    "LBRACE",
+    "RBRACE",
+    "COMMA",
+    "SEMICOLON",
+    "AT",
+    "UNTERMINATED_STRING",
 )
-from lexer import lexer, tokens
+
+reserved = {
+    "let": "LET",
+    "func": "FUNC",
+    "if": "IF",
+    "else": "ELSE",
+    "while": "WHILE",
+    "for": "FOR",
+    "return": "RETURN",
+    "print": "PRINT",
+    "true": "BOOLEAN",
+    "false": "BOOLEAN",
+}
+
+
+def t_COMMENT(t):
+    r"//[^\r\n]*"
+
+
+def t_EQ(t):
+    r"=="
+    return t
+
+
+def t_NE(t):
+    r"!="
+    return t
+
+
+def t_LE(t):
+    r"<="
+    return t
+
+
+def t_GE(t):
+    r">="
+    return t
+
+
+def t_FLOAT(t):
+    r"(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?|\d+[eE][+-]?\d+"
+    t.value = float(t.value)
+    return t
+
+
+def t_STRING(t):
+    r'"([^"\\\r\n]|\\[^\r\n])*"'
+    try:
+        t.value = python_ast.literal_eval(t.value)
+    except (SyntaxError, ValueError) as error:
+        raise ValueError(
+            f"LEXICAL error: malformed string literal at line {t.lineno}"
+        ) from error
+    return t
+
+
+def t_UNTERMINATED_STRING(t):
+    r'"([^"\\\r\n]|\\[^\r\n])*(?:\r\n|\r|\n|$)'
+    raise ValueError(
+        f"LEXICAL error: unterminated string literal at line {t.lineno}"
+    )
+
+
+def t_INTEGER(t):
+    r"\d+"
+    t.value = int(t.value)
+    return t
+
+
+def t_IDENTIFIER(t):
+    r"[a-zA-Z_][a-zA-Z0-9_]*"
+    t.type = reserved.get(t.value, "IDENTIFIER")
+    if t.type == "BOOLEAN":
+        t.value = t.value == "true"
+    return t
+
+
+t_ASSIGN = r"="
+t_PLUS = r"\+"
+t_MINUS = r"-"
+t_TIMES = r"\*"
+t_DIVIDE = r"/"
+t_MODULO = r"%"
+t_LT = r"<"
+t_GT = r">"
+t_LPAREN = r"\("
+t_RPAREN = r"\)"
+t_LBRACE = r"\{"
+t_RBRACE = r"\}"
+t_COMMA = r","
+t_SEMICOLON = r";"
+t_AT = r"@"
+
+t_ignore = " \t\f\v"
+
+
+def t_newline(t):
+    r"(?:\r\n|\r|\n)+"
+    t.lexer.lineno += len(t.value) - t.value.count("\r\n")
+
+
+def t_error(t):
+    raise ValueError(
+        f"LEXICAL error: illegal character {t.value[0]!r} at line {t.lineno}"
+    )
+
+
+lexer = lex.lex()
+
+
+# ---------------------------------------------------------------------------
+# Parser
 
 
 start = "program"
@@ -41,8 +334,6 @@ precedence = (
 
 
 def _tuple(values: Iterable[object]) -> tuple:
-    """Convert parser lists to immutable AST collections."""
-
     return tuple(values)
 
 
@@ -80,11 +371,7 @@ def p_block(p):
 
 def p_statement_declaration(p):
     "statement : LET IDENTIFIER ASSIGN expression SEMICOLON"
-    p[0] = LetDeclaration(
-        name=p[2],
-        initializer=p[4],
-        line=p.lineno(1),
-    )
+    p[0] = LetDeclaration(name=p[2], initializer=p[4], line=p.lineno(1))
 
 
 def p_statement_assignment(p):
@@ -114,12 +401,7 @@ def p_statement_return_empty(p):
 
 def p_statement_if(p):
     "statement : IF LPAREN expression RPAREN block"
-    p[0] = If(
-        condition=p[3],
-        then_branch=p[5],
-        else_branch=None,
-        line=p.lineno(1),
-    )
+    p[0] = If(condition=p[3], then_branch=p[5], line=p.lineno(1))
 
 
 def p_statement_if_else(p):
@@ -330,8 +612,6 @@ def p_empty(p):
 
 
 def _eof_error_line() -> int:
-    """Return the line of the nearest unmatched delimiter when available."""
-
     for symbol in reversed(getattr(parser, "symstack", ())):
         if getattr(symbol, "type", None) in {"LBRACE", "LPAREN"}:
             return getattr(symbol, "lineno", None) or lexer.lineno
@@ -341,7 +621,6 @@ def _eof_error_line() -> int:
 def p_error(p):
     if p is None:
         raise ValueError(f"Error: unexpected end of file at line {_eof_error_line()}")
-
     raise ValueError(f"Error: unexpected token {p.value!r} at line {p.lineno}")
 
 
@@ -367,7 +646,7 @@ def main(argv: Optional[Tuple[str, ...]] = None) -> int:
 
     arguments = tuple(sys.argv[1:] if argv is None else argv)
     if len(arguments) != 1:
-        print("Usage: python parser.py <file>.uedge")
+        print("Usage: python ParserLexer.py <file>.uedge")
         return 1
 
     try:

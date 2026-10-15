@@ -1,6 +1,6 @@
 import unittest
 
-from ast_nodes import (
+from ParserLexer import (
     Assignment,
     Binary,
     Block,
@@ -15,6 +15,7 @@ from ast_nodes import (
     Program,
     Return,
     While,
+    parse_source,
 )
 
 
@@ -95,8 +96,6 @@ class AstStructureTests(unittest.TestCase):
         self.assertEqual(program.statements[3].name, "ready")
 
     def test_parser_returns_ast_nodes_instead_of_tuples(self):
-        from parser import parse_source
-
         program = parse_source("let answer = 40 + 2;\nprint(answer);\n")
 
         self.assertIsInstance(program, Program)
