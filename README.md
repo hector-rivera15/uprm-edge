@@ -17,13 +17,16 @@ python -m pip install -r requirements.txt
 Pass exactly one UPRM-Edge source file to the parser:
 
 ```bash
-python parser.py prueba.uedge
+python ParserLexer.py prueba.uedge
 ```
+
+For the Moodle submission, copy and paste the contents of `ParserLexer.py`.
+That file is self-contained and includes the lexer, AST definitions, parser, and
+CLI, so no additional project source files are required.
 
 ## Repository layout
 
-- `lexer.py` - PLY lexer definitions.
-- `parser.py` - PLY parser and command-line entry point.
+- `ParserLexer.py` - self-contained lexer, AST, parser, and command-line entry point.
 - `prueba.uedge` - small parser smoke-test program.
 - `Programs/Valid Core Programs/` - public valid common-core examples.
 - `Programs/Invalid Core Programs/` - public invalid-input examples.
