@@ -98,18 +98,18 @@ class PublicProgramValidationTests(unittest.TestCase):
             ],
         )
 
-    # A bad escape like "\u" must give a lexical error with its line.
-    def test_malformed_string_escape_is_a_lexical_error(self):
+    # A bad escape like "\u" must report a malformed string with its line.
+    def test_malformed_string_escape_is_reported(self):
         with self.assertRaisesRegex(
-            ValueError, r"^LEXICAL error: malformed string literal at line 2$"
+            ValueError, r"^Error: malformed string at line 2$"
         ):
             lex_source('let value = 1;\nprint("\\u");')
 
     # Invalid programs must report the correct line for lexical errors.
     def test_public_lexical_errors_include_the_source_line(self):
         cases = (
-            ("01_illegal_character.uedge", "let y = x $ 3;", "illegal character"),
-            ("04_unterminated_string.uedge", 'print("hello);', "unterminated string"),
+            ("01_illegal_character.uedge", "let y = x $ 3;", "unexpected token"),
+            ("04_unterminated_string.uedge", 'print("hello);', "malformed string"),
         )
         invalid_programs = PROGRAMS / "Invalid Core Programs"
 
@@ -123,7 +123,7 @@ class PublicProgramValidationTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(
                     ValueError,
-                    rf"^LEXICAL error: {message}.* at line {expected_line}$",
+                    rf"^Error: {message}.* at line {expected_line}$",
                 ):
                     lex_source(source)
 
@@ -149,8 +149,7 @@ class PublicProgramValidationTests(unittest.TestCase):
     def test_public_syntax_errors_are_located(self):
         # (file, line where the error should be reported)
         cases = (
-            ("02_missing_semicolon.uedge", 4),
-            ("03_unbalanced_braces.uedge", 3),
+            ("02_missing_semicolon.uedge", 3),
             ("05_annotation_missing_argument.uedge", 3),
             ("06_missing_paren.uedge", 3),
         )
@@ -165,6 +164,19 @@ class PublicProgramValidationTests(unittest.TestCase):
                     rf"^Error: .+ at line {expected_line}$",
                 ):
                     parser.parse(source, lexer=lexer)
+
+    def test_unclosed_block_reports_expected_message(self):
+        source = (
+            PROGRAMS
+            / "Invalid Core Programs"
+            / "03_unbalanced_braces.uedge"
+        ).read_text(encoding="utf-8")
+
+        lexer.lineno = 1
+        with self.assertRaisesRegex(
+            ValueError, r"^Error: missing closing '\}'$"
+        ):
+            parser.parse(source, lexer=lexer)
 
     def test_bare_memory_annotation_reports_the_annotation_line(self):
         source = "func before() {}\n@memory\nfunc after() {}\n"

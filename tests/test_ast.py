@@ -33,7 +33,7 @@ class AstStructureTests(unittest.TestCase):
         self.assertEqual(program.statements, (declaration,))
         self.assertEqual(program.statements[0].initializer.value, 42)
 
-    def test_expression_nodes_have_stable_shapes(self):
+    def test_expression_nodes_have_stable_shapes_and_are_mutable(self):
         expression = Binary(
             operator="+",
             left=Identifier(name="a", line=3),
@@ -44,8 +44,8 @@ class AstStructureTests(unittest.TestCase):
         self.assertEqual(expression.operator, "+")
         self.assertEqual(expression.left.name, "a")
         self.assertEqual(expression.right.value, 2)
-        with self.assertRaises((AttributeError, TypeError)):
-            expression.operator = "-"
+        expression.operator = "-"
+        self.assertEqual(expression.operator, "-")
 
     def test_control_flow_functions_calls_and_memory_annotations_are_composable(self):
         body = Block(

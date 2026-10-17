@@ -4,8 +4,13 @@ UPRM-Edge is a programming language that
 
 ## Setup
 
-The parser uses only the Python standard library, so no packages need to be
-installed.
+Create and activate a virtual environment, then install the project dependency:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
 ## Usage
 
@@ -27,7 +32,7 @@ CLI, so no additional project source files are required.
 - `Programs/Invalid Core Programs/` - public invalid-input examples.
 - `Programs/Memory Track/` - public Memory-Aware track examples.
 - `Instructions/` - assignment instruction images.
-- `requirements.txt` - documents that no third-party dependencies are required.
+- `requirements.txt` - Python dependencies.
 
 ## Selected track
 
