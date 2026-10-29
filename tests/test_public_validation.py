@@ -101,7 +101,8 @@ class PublicProgramValidationTests(unittest.TestCase):
     # A bad escape like "\u" must report a malformed string with its line.
     def test_malformed_string_escape_is_reported(self):
         with self.assertRaisesRegex(
-            ValueError, r"^Error: malformed string at line 2$"
+            ValueError,
+            r"^Error: malformed string at line 2, character 7\nSuggestion: .+$",
         ):
             lex_source('let value = 1;\nprint("\\u");')
 
@@ -123,7 +124,8 @@ class PublicProgramValidationTests(unittest.TestCase):
                 )
                 with self.assertRaisesRegex(
                     ValueError,
-                    rf"^Error: {message}.* at line {expected_line}$",
+                    rf"^Error: {message}.* at line {expected_line}, character \d+\n"
+                    r"Suggestion: .+$",
                 ):
                     lex_source(source)
 
@@ -161,7 +163,8 @@ class PublicProgramValidationTests(unittest.TestCase):
                 lexer.lineno = 1
                 with self.assertRaisesRegex(
                     ValueError,
-                    rf"^Error: .+ at line {expected_line}$",
+                    rf"^Error: .+ at line {expected_line}, character \d+\n"
+                    r"Suggestion: .+$",
                 ):
                     parser.parse(source, lexer=lexer)
 
@@ -174,7 +177,9 @@ class PublicProgramValidationTests(unittest.TestCase):
 
         lexer.lineno = 1
         with self.assertRaisesRegex(
-            ValueError, r"^Error: missing closing '\}'$"
+            ValueError,
+            r"^Error: missing closing '\}' at line 4, character 18\n"
+            r"Suggestion: add '\}' to close the block\.$",
         ):
             parser.parse(source, lexer=lexer)
 
@@ -184,7 +189,8 @@ class PublicProgramValidationTests(unittest.TestCase):
         lexer.lineno = 1
         with self.assertRaisesRegex(
             ValueError,
-            r"^Error: malformed @memory annotation at line 2$",
+            r"^Error: malformed @memory annotation at line 2, character 1\n"
+            r"Suggestion: .+$",
         ):
             parser.parse(source, lexer=lexer)
 

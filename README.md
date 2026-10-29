@@ -20,9 +20,9 @@ Pass exactly one UPRM-Edge source file to the parser:
 python ParserLexer.py prueba.uedge
 ```
 
-For the Moodle submission, copy and paste the contents of `ParserLexer.py`.
-That file is self-contained and includes the lexer, AST definitions, parser, and
-CLI, so no additional project source files are required.
+For the Moodle submission, copy and paste the contents of `ParserLexer.py` after
+installing PLY from `requirements.txt`. The file includes the lexer, AST
+definitions, parser, and CLI.
 
 ## Repository layout
 

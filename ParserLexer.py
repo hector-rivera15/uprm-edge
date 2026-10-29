@@ -224,6 +224,25 @@ reserved = {
 }
 
 
+def _column(source: str, lexpos: int) -> int:
+    line_start = max(source.rfind("\n", 0, lexpos), source.rfind("\r", 0, lexpos)) + 1
+    return lexpos - line_start + 1
+
+
+def _line_end_column(source: str, line: int) -> int:
+    lines = source.splitlines()
+    if 1 <= line <= len(lines):
+        return len(lines[line - 1]) + 1
+    return _column(source, len(source))
+
+
+def _error(message: str, line: int, column: int, suggestion: str) -> ValueError:
+    return ValueError(
+        f"Error: {message} at line {line}, character {column}\n"
+        f"Suggestion: {suggestion}"
+    )
+
+
 def t_COMMENT(t):
     r"//[^\r\n]*"
 
@@ -259,16 +278,22 @@ def t_STRING(t):
     try:
         t.value = python_ast.literal_eval(t.value)
     except (SyntaxError, ValueError) as error:
-        raise ValueError(
-            f"LEXICAL error: malformed string literal at line {t.lineno}"
+        raise _error(
+            "malformed string",
+            t.lineno,
+            _column(t.lexer.lexdata, t.lexpos),
+            'use a valid escape sequence and close the string.',
         ) from error
     return t
 
 
 def t_UNTERMINATED_STRING(t):
     r'"([^"\\\r\n]|\\[^\r\n])*(?:\r\n|\r|\n|$)'
-    raise ValueError(
-        f"LEXICAL error: unterminated string literal at line {t.lineno}"
+    raise _error(
+        "malformed string",
+        t.lineno,
+        _column(t.lexer.lexdata, t.lexpos),
+        'close the string with a matching `"`.',
     )
 
 
@@ -311,8 +336,11 @@ def t_newline(t):
 
 
 def t_error(t):
-    raise ValueError(
-        f"LEXICAL error: illegal character {t.value[0]!r} at line {t.lineno}"
+    raise _error(
+        f"unexpected token ‘{t.value[0]}’",
+        t.lineno,
+        _column(t.lexer.lexdata, t.lexpos),
+        f"remove {t.value[0]!r} or replace it with a valid UPRM-Edge operator.",
     )
 
 
@@ -504,8 +532,11 @@ def p_annotations_multiple(p):
 def p_annotation_memory(p):
     "annotation : AT IDENTIFIER LPAREN INTEGER IDENTIFIER RPAREN"
     if p[2] != "memory":
-        raise ValueError(
-            f"Error: unsupported annotation @{p[2]!s} at line {p.lineno(1)}"
+        raise _error(
+            f"unsupported annotation @{p[2]!s}",
+            p.lineno(1),
+            _column(lexer.lexdata, p.lexpos(1)),
+            "use the supported @memory(numberunit) annotation.",
         )
     p[0] = MemoryAnnotation(amount=p[4], unit=p[5], line=p.lineno(1))
 
@@ -513,11 +544,17 @@ def p_annotation_memory(p):
 def p_annotation_missing_arguments(p):
     "annotation : AT IDENTIFIER"
     if p[2] == "memory":
-        raise ValueError(
-            f"Error: malformed @memory annotation at line {p.lineno(1)}"
+        raise _error(
+            "malformed @memory annotation",
+            p.lineno(1),
+            _column(lexer.lexdata, p.lexpos(1)),
+            "write @memory(numberunit), for example @memory(40kb).",
         )
-    raise ValueError(
-        f"Error: unsupported annotation @{p[2]!s} at line {p.lineno(1)}"
+    raise _error(
+        f"unsupported annotation @{p[2]!s}",
+        p.lineno(1),
+        _column(lexer.lexdata, p.lexpos(1)),
+        "use the supported @memory(numberunit) annotation.",
     )
 
 
@@ -622,17 +659,115 @@ def p_empty(p):
     p[0] = None
 
 
-def _eof_error_line() -> int:
+def _last_terminal():
     for symbol in reversed(getattr(parser, "symstack", ())):
-        if getattr(symbol, "type", None) in {"LBRACE", "LPAREN"}:
-            return getattr(symbol, "lineno", None) or lexer.lineno
-    return lexer.lineno
+        if getattr(symbol, "type", None) in tokens:
+            return symbol
+    return None
+
+
+def _expected_tokens():
+    state_stack = getattr(parser, "statestack", ())
+    if not state_stack:
+        return set()
+    actions = getattr(parser, "action", {}).get(state_stack[-1], {})
+    return {token_type for token_type, action in actions.items() if action}
+
+
+def _unclosed_delimiters():
+    delimiters = []
+    matching = {"RPAREN": "LPAREN", "RBRACE": "LBRACE"}
+    for symbol in getattr(parser, "symstack", ()):
+        symbol_type = getattr(symbol, "type", None)
+        if symbol_type in {"LPAREN", "LBRACE"}:
+            delimiters.append(symbol_type)
+        elif symbol_type in matching and delimiters and delimiters[-1] == matching[symbol_type]:
+            delimiters.pop()
+    return delimiters
+
+
+def _eof_location(source: str):
+    lines = source.splitlines()
+    for line_number in range(len(lines), 0, -1):
+        if lines[line_number - 1].strip():
+            return line_number, len(lines[line_number - 1]) + 1
+    return 1, 1
 
 
 def p_error(p):
+    source = getattr(lexer, "lexdata", "")
+    previous = _last_terminal()
+    expected = _expected_tokens()
+    unclosed = _unclosed_delimiters()
+
+    if p is not None and p.type == "RPAREN" and expected == {"INTEGER"}:
+        raise _error(
+            "malformed @memory annotation",
+            p.lineno,
+            _column(source, p.lexpos),
+            "add an integer amount and unit, for example @memory(40kb).",
+        )
+
+    if "RPAREN" in expected and "LPAREN" in unclosed:
+        if p is not None:
+            line = p.lineno
+            column = _column(source, p.lexpos)
+        else:
+            line, column = _eof_location(source)
+        raise _error(
+            "missing closing ')'",
+            line,
+            column,
+            "insert ')' before the token shown.",
+        )
+
+    if "RBRACE" in expected and "LBRACE" in unclosed:
+        if p is not None:
+            line = p.lineno
+            column = _column(source, p.lexpos)
+        else:
+            line, column = _eof_location(source)
+        raise _error(
+            "missing closing '}'",
+            line,
+            column,
+            "add '}' to close the block.",
+        )
+
+    if "SEMICOLON" in expected:
+        if p is not None and (
+            previous is None or previous.lineno == p.lineno
+        ):
+            line = p.lineno
+            column = _column(source, p.lexpos)
+        elif previous is not None:
+            line = previous.lineno
+            column = _line_end_column(source, line)
+        else:
+            line = lexer.lineno
+            column = _line_end_column(source, line)
+        raise _error(
+            "expected ‘;’",
+            line,
+            column,
+            "add ';' at the end of the statement.",
+        )
+
     if p is None:
-        raise ValueError(f"Error: unexpected end of file at line {_eof_error_line()}")
-    raise ValueError(f"Error: unexpected token {p.value!r} at line {p.lineno}")
+        line, column = _eof_location(source)
+        raise _error(
+            "unexpected end of file",
+            line,
+            column,
+            "complete the statement or add the missing closing delimiter.",
+        )
+
+    raise _error(
+        f"unexpected token ‘{p.value}’",
+        p.lineno,
+        _column(source, p.lexpos),
+        f"remove {p.value!r} or replace it with the token expected here.",
+    )
 
 
 parser = yacc.yacc(
