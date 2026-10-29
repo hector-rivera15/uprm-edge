@@ -1,0 +1,2 @@
+// Expected: SYNTAX error for a trailing comma in a call.
+print(add(1,));

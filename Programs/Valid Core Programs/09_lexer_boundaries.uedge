@@ -1,0 +1,10 @@
+// Exercises: identifier boundaries, decimal/exponent floats, unary minus, and escapes
+let _value = .5;
+let iffy = 5.;
+let trueValue = 1e-3;
+let large = 2E+4;
+let ready = false;
+let escaped = "quote: \" slash: \\ tab:\t";
+print(-1e-3);
+print(escaped);
+noop();

@@ -28,8 +28,8 @@ definitions, parser, and CLI.
 
 - `ParserLexer.py` - self-contained lexer, AST, parser, and command-line entry point.
 - `prueba.uedge` - small parser smoke-test program.
-- `Programs/Valid Core Programs/` - public valid common-core examples.
-- `Programs/Invalid Core Programs/` - public invalid-input examples.
+- `Programs/Valid Core Programs/` - public valid common-core and lexer/parser edge-case examples.
+- `Programs/Invalid Core Programs/` - public invalid-input and lexer/parser edge-case examples.
 - `Programs/Memory Track/` - public Memory-Aware track examples.
 - `Instructions/` - assignment instruction images.
 - `requirements.txt` - Python dependencies.

@@ -30,7 +30,7 @@ class PublicProgramValidationTests(unittest.TestCase):
                     token.type for token in lex_source(path.read_text(encoding="utf-8"))
                 )
 
-        self.assertEqual(len(paths), 8)
+        self.assertEqual(len(paths), 12)
         self.assertTrue(
             {
                 "LET",
@@ -156,6 +156,26 @@ class PublicProgramValidationTests(unittest.TestCase):
             ("02_missing_semicolon.uedge", 3),
             ("05_annotation_missing_argument.uedge", 3),
             ("06_missing_paren.uedge", 3),
+        )
+        invalid_programs = PROGRAMS / "Invalid Core Programs"
+
+        for filename, expected_line in cases:
+            with self.subTest(program=filename):
+                source = (invalid_programs / filename).read_text(encoding="utf-8")
+                lexer.lineno = 1
+                with self.assertRaisesRegex(
+                    ValueError,
+                    rf"^Error: .+ at line {expected_line}, character \d+\n"
+                    r"Suggestion: .+$",
+                ):
+                    parser.parse(source, lexer=lexer)
+
+    def test_additional_edge_case_programs_are_rejected(self):
+        cases = (
+            ("07_missing_parameter_comma.uedge", 2),
+            ("08_invalid_escape.uedge", 2),
+            ("09_unsupported_annotation.uedge", 2),
+            ("10_trailing_call_comma.uedge", 2),
         )
         invalid_programs = PROGRAMS / "Invalid Core Programs"
 

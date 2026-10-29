@@ -1,0 +1,16 @@
+// Exercises: repeated annotations, zero-argument functions, and nested calls
+@memory(1kb)
+@memory(2mb)
+func compose() {
+    return add(square(2), square(3));
+}
+
+func square(value) {
+    return value * value;
+}
+
+func add(left, right) {
+    return left + right;
+}
+
+compose();

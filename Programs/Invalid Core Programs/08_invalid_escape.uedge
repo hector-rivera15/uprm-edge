@@ -1,0 +1,2 @@
+// Expected: LEXICAL error for an invalid string escape.
+print("\u");

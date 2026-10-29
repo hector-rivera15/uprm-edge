@@ -1,0 +1,9 @@
+// Exercises: empty return, zero-argument calls, empty blocks, and optional for parts
+func empty(first, second) {
+    return;
+}
+
+empty(1, 2);
+for (; false;) {}
+for (let i = 0; i < 0;) {}
+for (;;) {}

@@ -1,0 +1,4 @@
+// Expected: SYNTAX error where the comma between parameters is missing.
+func add(left right) {
+    return left + right;
+}

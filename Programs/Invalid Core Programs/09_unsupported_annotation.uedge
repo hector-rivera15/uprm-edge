@@ -1,0 +1,3 @@
+// Expected: SYNTAX error for an annotation other than @memory.
+@time(1ms)
+func timed() {}
