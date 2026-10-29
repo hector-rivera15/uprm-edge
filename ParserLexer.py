@@ -239,8 +239,18 @@ def _line_end_column(source: str, line: int) -> int:
 def _error(message: str, line: int, column: int, suggestion: str) -> ValueError:
     return ValueError(
         f"Error: {message} at line {line}, character {column}\n"
-        f"Suggestion: {suggestion}"
+        f"Suggestion: {suggestion.rstrip('.')} at line {line}, "
+        f"character {column}."
     )
+
+
+def _is_memory_annotation_error() -> bool:
+    stack = getattr(parser, "symstack", ())
+    return any(
+        getattr(symbol, "type", None) == "IDENTIFIER"
+        and getattr(symbol, "value", None) == "memory"
+        for symbol in stack
+    ) and any(getattr(symbol, "type", None) == "AT" for symbol in stack)
 
 
 def t_COMMENT(t):
@@ -699,6 +709,19 @@ def p_error(p):
     previous = _last_terminal()
     expected = _expected_tokens()
     unclosed = _unclosed_delimiters()
+
+    if (
+        p is not None
+        and p.type == "RPAREN"
+        and expected == {"IDENTIFIER"}
+        and _is_memory_annotation_error()
+    ):
+        raise _error(
+            "malformed @memory annotation",
+            p.lineno,
+            _column(source, p.lexpos),
+            "add the unit, for example @memory(40kb).",
+        )
 
     if p is not None and p.type == "RPAREN" and expected == {"INTEGER"}:
         raise _error(

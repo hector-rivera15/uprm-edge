@@ -1,0 +1,9 @@
+// Expected result: Error: malformed @memory annotation at line 3, character 9
+//                  Suggestion: add an integer amount and unit, for example @memory(40kb) at line 3, character 9.
+@memory()
+func tooBig() {
+    let buffer = array(int, 2000);
+    print("unreachable");
+}
+
+tooBig();

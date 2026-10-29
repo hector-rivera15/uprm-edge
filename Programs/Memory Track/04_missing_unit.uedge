@@ -1,0 +1,10 @@
+// Expected result: Error: malformed @memory annotation at line 2, character 11 its missing the units Suggestion: add the unit, for example @memory(40kb) at line 2, character 9.
+// Its missing the unit
+
+@memory(40)
+func tooBig() {
+    let buffer = array(int, 2000);
+    print("unreachable");
+}
+
+tooBig();

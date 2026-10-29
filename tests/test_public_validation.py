@@ -139,7 +139,9 @@ class PublicProgramValidationTests(unittest.TestCase):
         self.assert_programs_parse(PROGRAMS / "Memory Track")
 
     def assert_programs_parse(self, folder):
-        paths = sorted(folder.glob("*.uedge"))
+        paths = sorted(
+            path for path in folder.glob("*.uedge") if "syntax_error" not in path.name
+        )
         self.assertTrue(paths)
 
         for path in paths:
@@ -179,7 +181,7 @@ class PublicProgramValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             r"^Error: missing closing '\}' at line 4, character 18\n"
-            r"Suggestion: add '\}' to close the block\.$",
+            r"Suggestion: add '\}' to close the block at line 4, character 18\.$",
         ):
             parser.parse(source, lexer=lexer)
 
@@ -191,6 +193,18 @@ class PublicProgramValidationTests(unittest.TestCase):
             ValueError,
             r"^Error: malformed @memory annotation at line 2, character 1\n"
             r"Suggestion: .+$",
+        ):
+            parser.parse(source, lexer=lexer)
+
+    def test_memory_annotation_missing_unit_reports_suggestion_location(self):
+        source = "@memory(40)\nfunc f() {}\n"
+
+        lexer.lineno = 1
+        with self.assertRaisesRegex(
+            ValueError,
+            r"^Error: malformed @memory annotation at line 1, character 11\n"
+            r"Suggestion: add the unit, for example @memory\(40kb\) "
+            r"at line 1, character 11\.$",
         ):
             parser.parse(source, lexer=lexer)
 

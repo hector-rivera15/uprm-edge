@@ -36,15 +36,16 @@ class ParserLexerSubmissionTests(unittest.TestCase):
         expected_outputs = {
             "01_illegal_character.uedge": (
                 "Error: unexpected token ‘$’ at line 4, character 11\n"
-                "Suggestion: remove '$' or replace it with a valid UPRM-Edge operator."
+                "Suggestion: remove '$' or replace it with a valid UPRM-Edge operator "
+                "at line 4, character 11."
             ),
             "02_missing_semicolon.uedge": (
                 "Error: expected ‘;’ at line 3, character 10\n"
-                "Suggestion: add ';' at the end of the statement."
+                "Suggestion: add ';' at the end of the statement at line 3, character 10."
             ),
             "03_unbalanced_braces.uedge": (
                 "Error: missing closing '}' at line 4, character 18\n"
-                "Suggestion: add '}' to close the block."
+                "Suggestion: add '}' to close the block at line 4, character 18."
             ),
         }
 
